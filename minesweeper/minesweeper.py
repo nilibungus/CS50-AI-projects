@@ -1,6 +1,11 @@
 import itertools
 import random
 
+def subseting(set1, set2):
+
+    for el in set1:
+        set2.add(el)
+    return set2
 
 class Minesweeper():
     """
@@ -105,27 +110,46 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-        raise NotImplementedError
+        known_mines1 = set()
+        if len(self.cells) == self.count:
+
+            subseting(self.cells, known_mines1)
+            return known_mines1
+        else:
+            return known_mines1
+
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-        raise NotImplementedError
+        known_safes1 = set()
+        if self.count == 0:
+            subseting(self.cells, known_safes1)
+            return known_safes1
+        return known_safes1
 
     def mark_mine(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
+            self.count -= 1
+
+
+
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
+
+
 
 
 class MinesweeperAI():
@@ -182,7 +206,113 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        raise NotImplementedError
+        self.moves_made.add(cell)
+        self.mark_safe(cell)
+        self.safes.add(cell)
+        setcells = set()
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
+                if (i, j) == cell:
+                    continue
+
+
+                if 0 <= i < self.height and 0 <= j < self.width:
+                    setcells.add((i, j))
+        sentence = Sentence(setcells, count)
+        self.knowledge.append(sentence)
+        for cell in sentence.cells.copy():
+            if cell in sentence.known_mines():
+                self.mark_mine(cell)
+                self.mines.add(cell)
+            if cell in sentence.known_safes():
+                self.mark_safe(cell)
+
+
+
+        new_sentences = []
+        changed = True
+        while changed:
+            changed = False
+
+            for i in range(len(self.knowledge)):
+                for j in range(len(self.knowledge)):
+                    if i == j:
+                        continue
+
+                    if self.knowledge[i].cells.issubset(self.knowledge[j].cells):
+                        cellsi_updated = set()
+                        cellsj_updated = set()
+                        count1 = 0
+
+                        for cell in self.knowledge[j].cells - self.knowledge[i].cells:
+
+                            if cell not in self.safes and cell not in self.mines:
+                                cellsj_updated.add(cell)
+
+                        for cell in self.knowledge[i].cells:
+                            if cell not in self.safes and cell not in self.mines:
+                                cellsi_updated.add(cell)
+
+                        complement = cellsj_updated - cellsi_updated
+                        count3 = self.knowledge[j].count - self.knowledge[i].count
+
+                        sentence3 = Sentence(complement, count3)
+
+                        for cell in sentence3.cells.copy():
+                            if cell in sentence3.known_mines():
+                                self.mark_mine(cell)
+                                changed = True
+                            if cell in sentence3.known_safes():
+                                self.mark_safe(cell)
+                                changed = True
+
+                        if (sentence3 not in self.knowledge and sentence3 not in new_sentences):
+                            new_sentences.append(sentence3)
+                            changed = True
+
+                    elif self.knowledge[j].cells.issubset(self.knowledge[i].cells):
+                        cellsi_updated = set()
+                        cellsj_updated = set()
+                        count1 = 0
+
+                        for cell in self.knowledge[i].cells - self.knowledge[j].cells:
+
+                            if cell not in self.safes and cell not in self.mines:
+                                cellsj_updated.add(cell)
+
+                        for cell in self.knowledge[i].cells:
+                            if cell not in self.safes and cell not in self.mines:
+                                cellsi_updated.add(cell)
+
+                        complement = cellsi_updated - cellsj_updated
+                        count3 = self.knowledge[i].count - self.knowledge[j].count
+
+                        sentence3 = Sentence(complement, count3)
+
+                        for cell in sentence3.cells.copy():
+                            if cell in sentence3.known_mines():
+                                self.mark_mine(cell)
+                                changed = True
+                            if cell in sentence3.known_safes():
+                                self.mark_safe(cell)
+                                changed = True
+
+                        if (sentence3 not in self.knowledge and sentence3 not in new_sentences):
+                            new_sentences.append(sentence3)
+                            changed = True
+
+        self.knowledge.extend(new_sentences)
+
+
+
+
+
+
+
+
+
+
+
 
     def make_safe_move(self):
         """
@@ -193,7 +323,14 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        raise NotImplementedError
+        self_mines_copy = self.mines.copy()
+        self_safes_copy = self.safes.copy()
+        self_movesmade_copy = self.moves_made.copy()
+        for move in self_safes_copy:
+            if move not in self_movesmade_copy:
+                return move
+
+
 
     def make_random_move(self):
         """
@@ -202,4 +339,14 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        raise NotImplementedError
+        self_mines_copy = self.mines.copy()
+        self_safes_copy = self.safes.copy()
+        self_movesmade_copy = self.moves_made.copy()
+        height = self.height
+        width = self.width
+        h = random.randint(0, height - 1)
+        w = random.randint(0, width - 1)
+        if (h, w) not in self_movesmade_copy:
+            if (h, w) not in self_mines_copy:
+                return (h, w)
+
